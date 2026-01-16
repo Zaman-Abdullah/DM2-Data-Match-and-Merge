@@ -132,16 +132,30 @@ secondaryFile.addEventListener("change", async () => {
   }
 });
 
-// Merge logic
+// Merge logic (LEFT JOIN style)
 mergeButton.addEventListener("click", () => {
   const key = mergeKeySelect.value;
   if (!key || !primaryData || !secondaryData) return;
 
   showLoader(true);
+
+  // Collect all secondary columns (to keep consistent headers)
+  const secondaryCols = Object.keys(secondaryData[0] || {});
+
+  // Perform left join
   const merged = primaryData.map(row => {
     const match = secondaryData.find(r => (r[key] || "").toString().trim() === (row[key] || "").toString().trim());
-    return match ? { ...row, ...match } : null;
-  }).filter(r => r !== null);
+    if (match) {
+      return { ...row, ...match };
+    } else {
+      // Keep row, but add empty fields for secondary columns
+      let emptyCols = {};
+      secondaryCols.forEach(col => {
+        if (!(col in row)) emptyCols[col] = "";
+      });
+      return { ...row, ...emptyCols };
+    }
+  });
 
   unmatchedData = primaryData.filter(row =>
     !secondaryData.some(r => (r[key] || "").toString().trim() === (row[key] || "").toString().trim())
